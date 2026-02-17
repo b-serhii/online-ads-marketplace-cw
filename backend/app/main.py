@@ -1,8 +1,13 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from app.routers import ads
 
+from app.models import Base
+from app.db import engine
 from app.core.config import settings
-from app.routers.auth import router as auth_router
+from app.routers import auth, admin, users
 
 app = FastAPI(title="Online Ads Marketplace API")
 
@@ -15,8 +20,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+@app.on_event("startup")
+async def startup():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-app.include_router(auth_router)
+UPLOAD_DIR = "uploads"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
+app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
+
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+
+app.mount("/static", StaticFiles(directory="uploads"), name="static")
+
+
+app.include_router(auth.router)
+app.include_router(admin.router)
+app.include_router(users.router)
+app.include_router(ads.router)
 
 @app.get("/health")
 def health():

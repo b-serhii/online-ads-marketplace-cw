@@ -1,140 +1,91 @@
-import { Link as RouterLink } from "react-router-dom";
-import {
-  Box,
-  Button,
-  Checkbox,
-  Divider,
-  FormControlLabel,
-  IconButton,
-  InputAdornment,
-  Link,
-  Stack,
-  TextField,
-  Typography,
-} from "@mui/material";
-import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
-import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import { useState } from "react";
-import AuthLayout from "../components/AuthLayout";
-import AuthCard from "../components/AuthCard";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 export default function Login() {
-  const [showPassword, setShowPassword] = useState(false);
+  const { doLogin } = useAuth();
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await doLogin(email, password);
+      navigate("/profile");
+    } catch (err: any) {
+      setError(err?.response?.data?.detail ?? "Помилка входу");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <AuthLayout>
-      <AuthCard>
-        <Stack spacing={2.2}>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 800 }}>
-              Вхід в акаунт
-            </Typography>
-            <Typography sx={{ mt: 0.5, opacity: 0.72, fontSize: 14 }}>
-              Увійди, щоб продовжити.
-            </Typography>
-          </Box>
+    <div style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 16 }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          width: "100%",
+          maxWidth: 420,
+          padding: 20,
+          borderRadius: 16,
+          border: "1px solid rgba(0,0,0,0.08)",
+          boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>Вхід</h2>
 
-          <Stack direction={{ xs: "column", sm: "row" }} spacing={1.2}>
-            <Button fullWidth variant="outlined" sx={{ py: 1.15, borderRadius: 2 }}>
-              Google
-            </Button>
-            <Button fullWidth variant="outlined" sx={{ py: 1.15, borderRadius: 2 }}>
-              GitHub
-            </Button>
-          </Stack>
+        <label style={{ display: "block", marginTop: 12 }}>
+          <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 6 }}>Email</div>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+            required
+            style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+          />
+        </label>
 
-          <Divider sx={{ opacity: 0.6 }}>або</Divider>
+        <label style={{ display: "block", marginTop: 12 }}>
+          <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 6 }}>Пароль</div>
+          <input
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            type="password"
+            required
+            style={{ width: "100%", padding: 10, borderRadius: 10, border: "1px solid rgba(0,0,0,0.2)" }}
+          />
+        </label>
 
-          <Box component="form" onSubmit={(e) => e.preventDefault()}>
-            <Stack spacing={1.6}>
-              <TextField
-                type="email"
-                label="Email"
-                placeholder="name@example.com"
-                fullWidth
-                required
-                autoComplete="email"
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailOutlinedIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
+        {error && <div style={{ marginTop: 12, color: "#b00020" }}>{error}</div>}
 
-              <TextField
-                type={showPassword ? "text" : "password"}
-                label="Пароль"
-                placeholder="Введи пароль"
-                fullWidth
-                required
-                autoComplete="current-password"
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockOutlinedIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword((v) => !v)}
-                          edge="end"
-                          aria-label="toggle password visibility"
-                        >
-                          {showPassword ? (
-                            <VisibilityOffOutlinedIcon />
-                          ) : (
-                            <VisibilityOutlinedIcon />
-                          )}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
+        <button
+          type="submit"
+          disabled={loading}
+          style={{
+            width: "100%",
+            marginTop: 14,
+            padding: "10px 14px",
+            borderRadius: 10,
+            border: 0,
+            background: "#111",
+            color: "white",
+            cursor: "pointer",
+            fontWeight: 700,
+          }}
+        >
+          {loading ? "Входимо..." : "Увійти"}
+        </button>
 
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <FormControlLabel
-                  control={<Checkbox />}
-                  label={<Typography sx={{ fontSize: 14 }}>Запамʼятати</Typography>}
-                />
-
-                <Link
-                  component={RouterLink}
-                  to="/forgot-password"
-                  underline="hover"
-                  sx={{ fontSize: 14, fontWeight: 600 }}
-                >
-                  Забув пароль?
-                </Link>
-              </Stack>
-
-              <Button
-                type="submit"
-                variant="contained"
-                size="large"
-                sx={{ py: 1.2, borderRadius: 2.2, fontWeight: 800, textTransform: "none" }}
-              >
-                Увійти
-              </Button>
-            </Stack>
-          </Box>
-
-          <Typography sx={{ fontSize: 14, opacity: 0.8 }}>
-            Немає акаунту?{" "}
-            <Link component={RouterLink} to="/register" underline="hover" sx={{ fontWeight: 800 }}>
-              Зареєструватися
-            </Link>
-          </Typography>
-        </Stack>
-      </AuthCard>
-    </AuthLayout>
+        <p style={{ marginTop: 12, fontSize: 14 }}>
+          Немає акаунту? <Link to="/register">Зареєструватися</Link>
+        </p>
+      </form>
+    </div>
   );
 }

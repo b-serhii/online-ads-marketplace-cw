@@ -91,4 +91,5 @@ async def me(user: User = Depends(get_current_user)):
         "email": user.email,
         "is_email_verified": user.is_email_verified,
         "created_at": user.created_at,
+        "is_admin": user.is_admin,
     }
