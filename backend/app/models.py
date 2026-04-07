@@ -18,6 +18,7 @@ class User(Base):
     is_email_verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_admin = Column(Boolean, default=False)
     avatar = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
 
     created_at: Mapped[object] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at: Mapped[object] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())

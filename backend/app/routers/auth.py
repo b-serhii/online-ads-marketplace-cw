@@ -1,6 +1,10 @@
+import os
+import uuid
+import shutil
+from typing import Optional
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,7 +41,7 @@ async def register(data: RegisterIn, db: AsyncSession = Depends(get_db)):
         is_email_verified=False,
     )
     db.add(user)
-    await db.flush()  # отримати user.id без commit
+    await db.flush()
 
     token_row = EmailVerificationToken(
         user_id=user.id,
@@ -46,8 +50,6 @@ async def register(data: RegisterIn, db: AsyncSession = Depends(get_db)):
     db.add(token_row)
 
     await db.commit()
-
-    # Надсилаємо email з лінком підтвердження
     send_verify_email(user.email, str(token_row.token))
 
     return {"ok": True, "message": "Перевір пошту для підтвердження email"}
@@ -89,7 +91,60 @@ async def me(user: User = Depends(get_current_user)):
         "id": user.id,
         "name": user.name,
         "email": user.email,
+        "phone": getattr(user, 'phone', None),
+        "avatar": getattr(user, 'avatar', None),
         "is_email_verified": user.is_email_verified,
         "created_at": user.created_at,
         "is_admin": user.is_admin,
+    }
+
+@router.post("/me")
+async def update_profile(
+        name: str = Form(...),
+        phone: str = Form(""),
+        file: Optional[UploadFile] = File(None),
+        db: AsyncSession = Depends(get_db),
+        user: User = Depends(get_current_user)
+):
+    update_data = {
+        "name": name.strip(),
+        "phone": phone.strip() if phone.strip() else None
+    }
+
+    if file:
+        if not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Файл має бути зображенням")
+
+        UPLOAD_DIR = "uploads/avatars"
+        if not os.path.exists(UPLOAD_DIR):
+            os.makedirs(UPLOAD_DIR)
+
+        file_extension = file.filename.split(".")[-1]
+        new_filename = f"{uuid.uuid4()}.{file_extension}"
+        full_path = os.path.join(UPLOAD_DIR, new_filename)
+
+        with open(full_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        update_data["avatar"] = f"/uploads/avatars/{new_filename}"
+
+    await db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(**update_data)
+    )
+    await db.commit()
+
+    result = await db.execute(select(User).where(User.id == user.id))
+    fresh_user = result.scalar_one()
+
+    return {
+        "id": fresh_user.id,
+        "name": fresh_user.name,
+        "email": fresh_user.email,
+        "phone": fresh_user.phone,
+        "avatar": fresh_user.avatar,
+        "is_email_verified": fresh_user.is_email_verified,
+        "created_at": fresh_user.created_at,
+        "is_admin": fresh_user.is_admin,
     }
