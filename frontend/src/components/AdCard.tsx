@@ -1,51 +1,61 @@
-import React from 'react';
-import { Card, CardContent, CardMedia, Typography, Box, Chip } from '@mui/material';
+import { Card, CardMedia, CardContent, Typography, Box, Chip } from '@mui/material';
+import { useNavigate } from "react-router-dom";
 
-interface AdProps {
-    title: string;
-    price: string;
-    category: string;
-    image?: string;
-    location: string;
+// Інтерфейс оновлено: обов'язково додаємо id
+interface AdCardProps {
+    ad: {
+        id: number;
+        title: string;
+        price: number;
+        category: string;
+        image_url: string | null;
+        description: string;
+    };
 }
 
-const AdCard: React.FC<AdProps> = ({ title, price, category, image, location }) => {
+const BACKEND_URL = 'http://localhost:8000';
+
+export default function AdCard({ ad }: AdCardProps) {
+    // Хук обов'язково має бути всередині компонента
+    const navigate = useNavigate();
+
     return (
-        <Card className="ad-card">
-            {/* Картинка */}
-            <Box sx={{ position: 'relative', height: 240, bgcolor: '#f5f5f7' }}>
-                {image ? (
-                    <CardMedia component="img" height="100%" image={image} alt={title} sx={{ objectFit: 'cover' }} />
-                ) : (
-                    <Box display="flex" alignItems="center" justifyContent="center" height="100%">
-                        <Typography variant="caption" sx={{ color: '#86868b' }}>No Preview</Typography>
-                    </Box>
-                )}
+        <Card
+            // Додаємо onClick для переходу на сторінку оголошення
+            onClick={() => navigate(`/ad/${ad.id}`)}
+            sx={{
+                borderRadius: 4,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+                transition: 'transform 0.2s',
+                cursor: 'pointer', // Додаємо курсор, щоб показати клікабельність
+                '&:hover': { transform: 'translateY(-5px)' }
+            }}
+        >
+            <CardMedia
+                component="img"
+                height="200"
+                image={ad.image_url ? `${BACKEND_URL}${ad.image_url}` : 'https://via.placeholder.com/400x300?text=No+Image'}
+                alt={ad.title}
+            />
 
-                <Chip
-                    label={category}
-                    size="small"
-                    className="category-chip"
-                    sx={{ position: 'absolute', top: 16, left: 16 }}
-                />
-            </Box>
+            <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Chip label={ad.category} size="small" sx={{ fontWeight: 600, bgcolor: '#f1f5f9' }} />
+                    <Typography variant="h6" color="primary" sx={{ fontWeight: 800 }}>
+                        {ad.price} ₴
+                    </Typography>
+                </Box>
 
-            {/* Контент */}
-            <CardContent sx={{ pt: 3, pb: 3, px: 3 }}>
-                <Typography variant="caption" sx={{ color: '#86868b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    {location}
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1, height: '1.5em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {ad.title}
                 </Typography>
 
-                <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5, mb: 0.5, color: '#1d1d1f' }} noWrap>
-                    {title}
-                </Typography>
-
-                <Typography variant="body1" sx={{ color: '#0071e3', fontWeight: 600 }}>
-                    {price}
+                <Typography variant="body2" color="text.secondary" sx={{
+                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+                }}>
+                    {ad.description}
                 </Typography>
             </CardContent>
         </Card>
     );
-};
-
-export default AdCard;
+}

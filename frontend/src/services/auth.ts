@@ -1,8 +1,7 @@
-import { http } from "./http";
+import { http } from "./http.ts";
 
 export type RegisterPayload = { name: string; email: string; password: string };
 export type LoginPayload = { email: string; password: string };
-
 export type LoginResponse = { access_token: string; token_type?: string };
 
 export type MeResponse = {
@@ -10,7 +9,9 @@ export type MeResponse = {
   name: string;
   email: string;
   is_email_verified: boolean;
-  created_at?: string;
+  is_admin: boolean;
+  avatar?: string;
+  phone?: string;
 };
 
 export async function register(payload: RegisterPayload) {
@@ -27,3 +28,8 @@ export async function me() {
   const { data } = await http.get("/auth/me");
   return data as MeResponse;
 }
+
+export const updateProfile = async (formData: FormData) => {
+  const { data } = await http.post('/auth/me', formData);
+  return data;
+};

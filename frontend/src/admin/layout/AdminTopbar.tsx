@@ -1,26 +1,31 @@
-import { AppBar, Box, IconButton, Toolbar, Typography, Button } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
+import { AppBar, Box, Button, Toolbar, Typography } from "@mui/material";
 import { useAuth } from "../../auth/AuthContext";
+import { useNavigate } from "react-router-dom";
 
-export default function AdminTopbar({ onMenu }: { onMenu: () => void }) {
+export default function AdminTopbar() {
     const { user, logout } = useAuth();
+    const navigate = useNavigate();
 
     return (
-        <AppBar position="sticky" elevation={0} sx={{ bgcolor: "white", color: "text.primary", borderBottom: "1px solid rgba(0,0,0,.06)" }}>
-            <Toolbar>
-                <IconButton sx={{ display: { xs: "inline-flex", md: "none" }, mr: 1 }} onClick={onMenu}>
-                    <MenuIcon />
-                </IconButton>
-
-                <Typography fontWeight={800} sx={{ flex: 1 }}>
-                    Адмінка
-                </Typography>
+        <AppBar position="sticky" elevation={0} sx={{ bgcolor: "#FFFFFF", color: "#0F172A", borderBottom: "1px solid rgba(15,23,42,.08)" }}>
+            <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Box>
+                    <Typography sx={{ fontWeight: 900 }}>Адмінка</Typography>
+                    <Typography sx={{ fontSize: 12, opacity: 0.7 }}>Керування системою</Typography>
+                </Box>
 
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                    <Typography sx={{ opacity: 0.75, fontSize: 14 }}>
-                        {user?.name}
+                    <Typography sx={{ fontSize: 14, opacity: 0.85 }}>
+                        {user ? `Увійшов: ${user.name}` : ""}
                     </Typography>
-                    <Button onClick={logout} variant="outlined" size="small">
+                    <Button
+                        variant="contained"
+                        onClick={() => {
+                            logout();
+                            navigate("/login");
+                        }}
+                        sx={{ textTransform: "none", fontWeight: 800, borderRadius: 2 }}
+                    >
                         Вийти
                     </Button>
                 </Box>

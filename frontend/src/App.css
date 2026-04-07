@@ -1,0 +1,133 @@
+/* src/App.css */
+
+/* 1. Глобальні змінні Apple-стилю */
+:root {
+  --apple-bg: #F5F5F7;
+  --apple-blue: #0071E3;
+  --apple-text: #1D1D1F;
+  --apple-gray: #86868B;
+  --card-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+  --hover-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.12);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background-color: var(--apple-bg);
+  color: var(--apple-text);
+}
+
+a { text-decoration: none; color: inherit; }
+
+/* 2. Контейнер сторінки */
+.page-container {
+  background-color: var(--apple-bg);
+  min-height: 100vh;
+  padding-bottom: 100px;
+}
+
+/* 3. Navbar - "Плаваюче скло" */
+.navbar-glass {
+  background-color: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: none !important;
+  height: 64px;
+}
+
+/* 4. Кнопки (Apple Buttons) */
+.btn-primary {
+  background-color: var(--apple-blue) !important;
+  color: white !important;
+  border-radius: 980px !important; /* Pill shape */
+  padding: 8px 24px !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+  font-size: 15px !important;
+  box-shadow: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-primary:hover {
+  background-color: #0077ED !important;
+  transform: scale(1.02);
+}
+
+.btn-text {
+  color: var(--apple-text) !important;
+  text-transform: none !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+}
+
+/* 5. Hero Section (Чистий та ефектний) */
+.hero-section {
+  position: relative;
+  padding: 120px 0 80px; /* Великий відступ зверху */
+  text-align: center;
+  overflow: hidden;
+}
+
+/* Кольорова пляма на фоні (Mesh Gradient) */
+.hero-glow {
+  position: absolute;
+  top: -50%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(0,113,227,0.15) 0%, rgba(255,255,255,0) 70%);
+  z-index: 0;
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+/* 6. Пошук (Input як у Spotlight) */
+.search-bar-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 20px;
+  padding: 6px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  max-width: 500px;
+  margin: 40px auto 0;
+  transition: all 0.3s ease;
+}
+
+.search-bar-container:hover, .search-bar-container:focus-within {
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  transform: translateY(-2px);
+}
+
+/* 7. Картка товару (Clean & Minimal) */
+.ad-card {
+  background: white !important;
+  border-radius: 24px !important; /* Дуже круглі кути */
+  border: none !important;
+  box-shadow: var(--card-shadow) !important;
+  overflow: hidden;
+  height: 100%;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+  cursor: pointer;
+}
+
+.ad-card:hover {
+  transform: scale(1.03); /* Легке збільшення */
+  box-shadow: var(--hover-shadow) !important;
+}
+
+.category-chip {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(4px);
+  color: #111 !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(0,0,0,0.05) !important;
+}
