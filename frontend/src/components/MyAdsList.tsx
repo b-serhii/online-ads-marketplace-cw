@@ -12,7 +12,7 @@ import { api } from '../services/api';
 import EditAdModal from './EditAdModal';
 import DeleteAdDialog from './DeleteDialog';
 
-const BACKEND_URL = 'http://localhost:8000';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function MyAdsList() {
     const [ads, setAds] = useState<any[]>([]);
