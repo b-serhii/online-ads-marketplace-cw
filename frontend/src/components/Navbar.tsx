@@ -22,7 +22,7 @@ const Navbar = () => {
         }
     };
 
-    const BACKEND_URL = 'http://localhost:8000';
+    const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
     const avatarSrc = user?.avatar
         ? (user.avatar.startsWith('http') ? user.avatar : `${BACKEND_URL}${user.avatar}`)
         : undefined;
