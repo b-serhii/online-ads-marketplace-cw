@@ -11,7 +11,7 @@ import UpdateRoundedIcon from '@mui/icons-material/UpdateRounded';
 import Navbar from "../components/Navbar";
 import { api } from "../services/api";
 
-const BACKEND_URL = 'http://localhost:8000';
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const AdDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
