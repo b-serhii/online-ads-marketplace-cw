@@ -53,7 +53,7 @@ export default function AdminAdsManagement() {
                                     <Stack direction="row" spacing={2} alignItems="center">
                                         <Avatar
                                             variant="rounded"
-                                            src={`http://localhost:8000${ad.image_url}`}
+                                            src={`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}${ad.image_url}`}
                                             sx={{ width: 45, height: 45, bgcolor: '#eee' }}
                                         />
                                         <Typography sx={{ fontWeight: 600 }}>{ad.title}</Typography>
