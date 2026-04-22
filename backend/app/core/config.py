@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     GMAIL_APP_PASSWORD: str
 
     FRONTEND_URL: str = "http://localhost:5173"
-    BACKEND_URL: str = "http://localhost:8000"
+    BACKEND_URL: str = os.getenv("BACKEND_URL", "http://localhost:8000")
 
     CORS_ORIGINS: str = "http://localhost:5173"
 
