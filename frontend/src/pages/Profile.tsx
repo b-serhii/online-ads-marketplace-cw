@@ -33,7 +33,7 @@ export default function Profile() {
     }>({ open: false, message: '', severity: 'success' });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const BACKEND_URL = 'http://localhost:8000';
+    const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     useEffect(() => {
         (async () => {
