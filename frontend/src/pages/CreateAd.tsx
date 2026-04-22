@@ -10,7 +10,18 @@ import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 
-const CATEGORIES = ["Електроніка", "Транспорт", "Нерухомість", "Робота", "Послуги", "Дім і сад"];
+const CATEGORIES = [
+    "Електроніка",
+    "Транспорт",
+    "Нерухомість",
+    "Робота",
+    "Послуги",
+    "Дім і сад",
+    "Одяг та взуття",
+    "Дитячий світ",
+    "Спорт і хобі",
+    "Тварини"
+];
 
 export default function CreateAd() {
     const navigate = useNavigate();

@@ -1,167 +1,256 @@
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent, TextField, Button, Box, Typography, Stack, IconButton, MenuItem, Select, FormControl } from "@mui/material";
+import React, { useState, useEffect } from 'react';
+import {
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    TextField,
+    Button,
+    Stack,
+    Box,
+    IconButton,
+    MenuItem,
+    Typography,
+    InputAdornment,
+    CircularProgress,
+    Divider
+} from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import CloudUploadRoundedIcon from '@mui/icons-material/CloudUploadRounded';
 
+const CATEGORIES = [
+    "Електроніка",
+    "Транспорт",
+    "Нерухомість",
+    "Робота",
+    "Послуги",
+    "Дім і сад",
+    "Одяг та взуття",
+    "Дитячий світ",
+    "Спорт і хобі",
+    "Тварини"
+];
 interface EditAdModalProps {
     open: boolean;
     onClose: () => void;
     adData: any;
-    onSave: (formData: FormData) => void;
+    onSave: (formData: FormData) => Promise<void>;
 }
 
 export default function EditAdModal({ open, onClose, adData, onSave }: EditAdModalProps) {
-    const [title, setTitle] = useState("");
-    const [price, setPrice] = useState("");
-    const [description, setDescription] = useState("");
-    const [category, setCategory] = useState("Всі");
+    const [loading, setLoading] = useState(false);
 
-    const [newPhotos, setNewPhotos] = useState<File[]>([]);
+    const [form, setForm] = useState({
+        title: '',
+        description: '',
+        price: '',
+        category: ''
+    });
+
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [previewUrls, setPreviewUrls] = useState<string[]>([]);
 
     useEffect(() => {
         if (adData && open) {
-            setTitle(adData.title || "");
-            setPrice(adData.price || "");
-            setDescription(adData.description || "");
-            setCategory(adData.category || "Всі");
-            setNewPhotos([]);
-            setPreviewUrls(adData.images || []);
+            setForm({
+                title: adData.title || '',
+                description: adData.description || '',
+                price: adData.price?.toString() || '',
+                category: adData.category || CATEGORIES[0]
+            });
+
+            // БРОНЕБІЙНА ПЕРЕВІРКА ФОТО (захист від падіння модалки)
+            let safeUrls: string[] = [];
+            if (Array.isArray(adData.images_urls) && adData.images_urls.length > 0) {
+                safeUrls = adData.images_urls;
+            } else if (adData.image_url) {
+                safeUrls = [adData.image_url];
+            }
+
+            setPreviewUrls(safeUrls);
+            setSelectedFiles([]);
         }
     }, [adData, open]);
 
-    const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            const filesArray = Array.from(event.target.files);
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const newFiles = Array.from(e.target.files);
 
-            if (newPhotos.length + filesArray.length > 5) {
-                alert("Можна додати максимум 5 фото!");
+            if (previewUrls.length + newFiles.length > 5) {
+                alert("Максимальна кількість фото — 5");
                 return;
             }
 
-            setNewPhotos((prev) => [...prev, ...filesArray]);
+            const updatedFiles = [...selectedFiles, ...newFiles];
+            setSelectedFiles(updatedFiles);
 
-            const newPreviews = filesArray.map(file => URL.createObjectURL(file));
-            setPreviewUrls((prev) => [...prev, ...newPreviews]);
+            const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+            setPreviewUrls([...previewUrls, ...newPreviews]);
         }
     };
 
-    const removePhoto = (indexToRemove: number) => {
-        setPreviewUrls(prev => prev.filter((_, index) => index !== indexToRemove));
-        setNewPhotos(prev => prev.filter((_, index) => index !== indexToRemove));
+    const removePhoto = (index: number) => {
+        const updatedPreviews = previewUrls.filter((_, i) => i !== index);
+        setPreviewUrls(updatedPreviews);
+
+        const updatedFiles = selectedFiles.filter((_, i) => i !== index);
+        setSelectedFiles(updatedFiles);
     };
 
-    const handleSubmit = () => {
-        const formData = new FormData();
-        formData.append("title", title);
-        formData.append("price", price);
-        formData.append("description", description);
-        formData.append("category", category);
+    const handleAction = async () => {
+        setLoading(true);
+        const fd = new FormData();
+        fd.append('title', form.title);
+        fd.append('description', form.description);
+        fd.append('price', form.price);
+        fd.append('category', form.category);
 
-        newPhotos.forEach((file) => {
-            formData.append("images", file); // Назва 'images' має збігатися з тим, що очікує FastAPI
+        selectedFiles.forEach(file => {
+            fd.append('images', file);
         });
 
-        onSave(formData);
+        try {
+            await onSave(fd);
+            onClose();
+        } catch (error) {
+            console.error("Помилка при збереженні змін:", error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}>
-            <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontWeight: 800 }}>
+        <Dialog
+            open={open}
+            onClose={onClose}
+            fullWidth
+            maxWidth="sm"
+            PaperProps={{ sx: { borderRadius: 6 } }}
+        >
+            <DialogTitle sx={{ fontWeight: 900, display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 3 }}>
                 Редагувати оголошення
-                <IconButton onClick={onClose} sx={{ bgcolor: '#f1f5f9' }}><CloseRoundedIcon /></IconButton>
+                <IconButton onClick={onClose} size="small" sx={{ bgcolor: '#f1f5f9' }}>
+                    <CloseRoundedIcon fontSize="small" />
+                </IconButton>
             </DialogTitle>
 
-            <DialogContent dividers sx={{ border: 'none' }}>
+            <DialogContent>
                 <Stack spacing={3} sx={{ mt: 1 }}>
-                    <TextField
-                        label="Назва товару"
-                        fullWidth
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                    />
-
-                    <Stack direction="row" spacing={2}>
-                        <TextField
-                            label="Ціна (₴)"
-                            type="number"
-                            fullWidth
-                            value={price}
-                            onChange={(e) => setPrice(e.target.value)}
-                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                        />
-                        <FormControl fullWidth>
-                            <Select
-                                value={category}
-                                onChange={(e) => setCategory(e.target.value)}
-                                sx={{ borderRadius: '12px' }}
-                            >
-                                <MenuItem value="Всі">Виберіть категорію</MenuItem>
-                                <MenuItem value="Електроніка">Електроніка</MenuItem>
-                                <MenuItem value="Транспорт">Транспорт</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Stack>
-
-                    <TextField
-                        label="Опис"
-                        multiline
-                        rows={4}
-                        fullWidth
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                    />
+                    <Typography variant="body2" sx={{ color: '#64748b' }}>
+                        Внесіть зміни в поля нижче. Фотографії можна замінити, додавши нові.
+                    </Typography>
 
                     <Box>
-                        <Typography variant="subtitle2" fontWeight={700} mb={1}>Фотографії (до 5 шт.)</Typography>
-
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>
+                            Фотографії ({previewUrls.length}/5)
+                        </Typography>
                         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                            {/* Прев'ю фотографій */}
                             {previewUrls.map((url, index) => (
-                                <Box key={index} sx={{ position: 'relative', width: 80, height: 80 }}>
+                                <Box key={index} sx={{ position: 'relative', width: 85, height: 85 }}>
                                     <img
                                         src={url}
-                                        alt={`preview-${index}`}
+                                        alt="Прев'ю"
                                         style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px', border: '1px solid #e2e8f0' }}
                                     />
                                     <IconButton
                                         size="small"
                                         onClick={() => removePhoto(index)}
-                                        sx={{ position: 'absolute', top: -8, right: -8, bgcolor: '#ef4444', color: '#fff', '&:hover': { bgcolor: '#dc2626' }, width: 24, height: 24 }}
+                                        sx={{
+                                            position: 'absolute', top: -6, right: -6,
+                                            bgcolor: '#ef4444', color: '#fff',
+                                            width: 22, height: 22,
+                                            '&:hover': { bgcolor: '#dc2626' }
+                                        }}
                                     >
-                                        <CloseRoundedIcon sx={{ fontSize: 16 }} />
+                                        <CloseRoundedIcon sx={{ fontSize: 14 }} />
                                     </IconButton>
                                 </Box>
                             ))}
 
                             {previewUrls.length < 5 && (
-                                <Button
-                                    component="label"
+                                <Box
+                                    onClick={() => document.getElementById('edit-photo-input')?.click()}
                                     sx={{
-                                        width: 80, height: 80, borderRadius: '12px', border: '2px dashed #cbd5e1',
-                                        display: 'flex', flexDirection: 'column', color: '#64748b'
+                                        width: 85, height: 85, borderRadius: '12px',
+                                        border: '2px dashed #cbd5e1', display: 'flex',
+                                        alignItems: 'center', justifyContent: 'center',
+                                        cursor: 'pointer', color: '#94a3b8',
+                                        '&:hover': { borderColor: '#6366f1', color: '#6366f1', bgcolor: '#f8fafc' }
                                     }}
                                 >
                                     <CloudUploadRoundedIcon />
-                                    <input type="file" hidden multiple accept="image/*" onChange={handlePhotoChange} />
-                                </Button>
+                                </Box>
                             )}
                         </Box>
+                        <input type="file" id="edit-photo-input" hidden multiple accept="image/*" onChange={handleFileChange} />
                     </Box>
+
+                    <Divider />
+
+                    <TextField
+                        label="Назва"
+                        variant="filled"
+                        fullWidth
+                        value={form.title}
+                        onChange={e => setForm({...form, title: e.target.value})}
+                        slotProps={{ input: { sx: { borderRadius: '12px' } } }}
+                    />
+
+                    <Stack direction="row" spacing={2}>
+                        <TextField
+                            select label="Категорія"
+                            variant="filled"
+                            fullWidth
+                            value={form.category}
+                            onChange={e => setForm({...form, category: e.target.value})}
+                            slotProps={{ input: { sx: { borderRadius: '12px' } } }}
+                        >
+                            {CATEGORIES.map(cat => (
+                                <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                            ))}
+                        </TextField>
+
+                        <TextField
+                            label="Ціна"
+                            variant="filled"
+                            fullWidth
+                            type="number"
+                            value={form.price}
+                            onChange={e => setForm({...form, price: e.target.value})}
+                            InputProps={{
+                                startAdornment: <InputAdornment position="start">₴</InputAdornment>,
+                                sx: { borderRadius: '12px' }
+                            }}
+                        />
+                    </Stack>
+
+                    <TextField
+                        label="Опис"
+                        variant="filled"
+                        multiline
+                        rows={4}
+                        fullWidth
+                        value={form.description}
+                        onChange={e => setForm({...form, description: e.target.value})}
+                        slotProps={{ input: { sx: { borderRadius: '12px' } } }}
+                    />
 
                     <Button
                         variant="contained"
-                        size="large"
-                        onClick={handleSubmit}
+                        fullWidth
+                        disabled={loading}
+                        onClick={handleAction}
                         sx={{
-                            borderRadius: '14px', py: 1.5, fontWeight: 800, mt: 2, textTransform: 'none',
-                            background: 'linear-gradient(90deg, #6366f1, #a855f7)',
-                            boxShadow: '0 10px 20px rgba(99, 102, 241, 0.3)'
+                            py: 2,
+                            borderRadius: 4,
+                            fontWeight: 800,
+                            fontSize: '1rem',
+                            textTransform: 'none',
+                            background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                            boxShadow: '0 10px 25px rgba(99, 102, 241, 0.3)',
+                            '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 12px 30px rgba(99, 102, 241, 0.4)' }
                         }}
                     >
-                        Зберегти зміни
+                        {loading ? <CircularProgress size={24} color="inherit" /> : 'Зберегти зміни'}
                     </Button>
                 </Stack>
             </DialogContent>
