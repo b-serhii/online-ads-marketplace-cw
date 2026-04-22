@@ -33,3 +33,8 @@ export const updateProfile = async (formData: FormData) => {
   const { data } = await http.post('/auth/me', formData);
   return data;
 };
+
+export async function verifyEmail(token: string) {
+  const { data } = await http.get(`/auth/verify-email?token=${token}`);
+  return data;
+}

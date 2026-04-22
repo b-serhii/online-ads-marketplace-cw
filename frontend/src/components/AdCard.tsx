@@ -1,7 +1,6 @@
 import { Card, CardMedia, CardContent, Typography, Box, Chip } from '@mui/material';
 import { useNavigate } from "react-router-dom";
 
-// Інтерфейс оновлено: обов'язково додаємо id
 interface AdCardProps {
     ad: {
         id: number;
@@ -16,26 +15,29 @@ interface AdCardProps {
 const BACKEND_URL = 'http://localhost:8000';
 
 export default function AdCard({ ad }: AdCardProps) {
-    // Хук обов'язково має бути всередині компонента
     const navigate = useNavigate();
+
+    const imageUrl = ad.image_url
+        ? (ad.image_url.startsWith('http') ? ad.image_url : `${BACKEND_URL}${ad.image_url}`)
+        : 'https://via.placeholder.com/400x300?text=No+Image';
 
     return (
         <Card
-            // Додаємо onClick для переходу на сторінку оголошення
             onClick={() => navigate(`/ad/${ad.id}`)}
             sx={{
                 borderRadius: 4,
                 boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
                 transition: 'transform 0.2s',
-                cursor: 'pointer', // Додаємо курсор, щоб показати клікабельність
+                cursor: 'pointer',
                 '&:hover': { transform: 'translateY(-5px)' }
             }}
         >
             <CardMedia
                 component="img"
                 height="200"
-                image={ad.image_url ? `${BACKEND_URL}${ad.image_url}` : 'https://via.placeholder.com/400x300?text=No+Image'}
+                image={imageUrl}
                 alt={ad.title}
+                sx={{ objectFit: 'cover' }}
             />
 
             <CardContent>

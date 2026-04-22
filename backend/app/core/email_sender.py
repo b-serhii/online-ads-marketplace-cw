@@ -1,11 +1,14 @@
+import os
 import smtplib
 from email.message import EmailMessage
 
 from app.core.config import settings
 
+
 def send_verify_email(to_email: str, token: str) -> None:
-    # Краще вести на бекенд-ендпоїнт, який підтверджує email
-    verify_link = f"{settings.BACKEND_URL}/auth/verify-email?token={token}"
+    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+    verify_link = f"{frontend_url}/verify-email?token={token}"
 
     msg = EmailMessage()
     msg["Subject"] = "Підтвердження реєстрації"

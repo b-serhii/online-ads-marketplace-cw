@@ -1,320 +1,234 @@
-import React, { useEffect, useState } from "react";
-import {
-    Container, Typography, Box, Button, CircularProgress, Fade, Stack,
-    TextField, InputAdornment, Drawer, IconButton, Select, MenuItem,
-    FormControl, InputLabel, Chip, Divider, useMediaQuery, useTheme
-} from "@mui/material";
-import RefreshIcon from '@mui/icons-material/Refresh';
-import TuneIcon from '@mui/icons-material/Tune';
-import CloseIcon from '@mui/icons-material/Close';
-import SortIcon from '@mui/icons-material/Sort';
+import { Box, Container, Typography, Button, Stack, Paper, Chip, useMediaQuery } from "@mui/material";
+import { motion } from "framer-motion";
+import type { Variants } from "framer-motion";
+import { Link } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
-import HeroSection from "../components/HeroSection";
-import AdCard from "../components/AdCard";
-import { api } from "../services/api";
-import "../App.css";
+import Footer from "../components/Footer";
 
-const categories = ["Всі", "Електроніка", "Транспорт", "Нерухомість", "Робота", "Послуги", "Дім і сад"];
-const conditions = ["Всі", "Нове", "Вживане"];
+// Іконки
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import EastIcon from '@mui/icons-material/East';
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty';
+import QueryStatsIcon from '@mui/icons-material/QueryStats';
+import UnlimitedIcon from '@mui/icons-material/AllInclusive';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
+import SearchIcon from '@mui/icons-material/Search';
 
-const Home: React.FC = () => {
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-    const [ads, setAds] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    // Стани фільтрів
-    const [searchQuery, setSearchQuery] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState("Всі");
-    const [priceMin, setPriceMin] = useState("");
-    const [priceMax, setPriceMax] = useState("");
-    const [condition, setCondition] = useState("Всі");
-    const [sortBy, setSortBy] = useState("newest"); // newest, price_asc, price_desc
-
-    // Стан мобільного меню фільтрів
-    const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
-    useEffect(() => {
-        fetchAds();
-    }, []);
-
-    const fetchAds = async () => {
-        setLoading(true);
-        try {
-            const response = await api.get("/ads/");
-            setAds(response.data);
-        } catch (error) {
-            console.error("Помилка завантаження оголошень:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // Логіка фільтрації та сортування
-    let filteredAds = ads.filter(ad => {
-        const matchesCategory = selectedCategory === "Всі" || ad.category === selectedCategory;
-        const matchesSearch = ad.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                             ad.description?.toLowerCase().includes(searchQuery.toLowerCase());
-
-        const adPrice = Number(ad.price) || 0;
-        const min = priceMin ? Number(priceMin) : 0;
-        const max = priceMax ? Number(priceMax) : Infinity;
-        const matchesPrice = adPrice >= min && adPrice <= max;
-
-        // Якщо в бекенді є поле condition, фільтруємо по ньому (припускаємо, що воно є)
-        const matchesCondition = condition === "Всі" || ad.condition === condition || !ad.condition;
-
-        return matchesCategory && matchesSearch && matchesPrice && matchesCondition;
-    });
-
-    // Сортування
-    if (sortBy === "price_asc") {
-        filteredAds.sort((a, b) => (Number(a.price) || 0) - (Number(b.price) || 0));
-    } else if (sortBy === "price_desc") {
-        filteredAds.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
-    } else {
-        // За замовчуванням (найновіші) - припускаємо, що бекенд вже віддає нові першими,
-        // або можна додати сортування по ID/даті
-        filteredAds.sort((a, b) => b.id - a.id);
-    }
-
-    const resetFilters = () => {
-        setSearchQuery("");
-        setSelectedCategory("Всі");
-        setPriceMin("");
-        setPriceMax("");
-        setCondition("Всі");
-        setSortBy("newest");
-    };
-
-    // Компонент панелі фільтрів (щоб не дублювати код для мобілки і ПК)
-    const FilterContent = () => (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', mb: 1.5, letterSpacing: 1 }}>
-                    Категорія
-                </Typography>
-                <Stack spacing={0.5}>
-                    {categories.map((cat) => (
-                        <Box
-                            key={cat}
-                            onClick={() => {
-                                setSelectedCategory(cat);
-                                if (isMobile) setMobileFiltersOpen(false);
-                            }}
-                            sx={{
-                                px: 2, py: 1.2,
-                                borderRadius: 2,
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                bgcolor: selectedCategory === cat ? '#eff6ff' : 'transparent',
-                                color: selectedCategory === cat ? '#2563eb' : '#475569',
-                                fontWeight: selectedCategory === cat ? 700 : 500,
-                                '&:hover': { bgcolor: selectedCategory === cat ? '#eff6ff' : '#f8fafc' }
-                            }}
-                        >
-                            {cat}
-                        </Box>
-                    ))}
-                </Stack>
-            </Box>
-
-            <Divider />
-
-            <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', mb: 2, letterSpacing: 1 }}>
-                    Ціна (₴)
-                </Typography>
-                <Box display="flex" gap={1.5} alignItems="center">
-                    <TextField
-                        size="small"
-                        placeholder="Від"
-                        type="number"
-                        value={priceMin}
-                        onChange={(e) => setPriceMin(e.target.value)}
-                        sx={{ bgcolor: '#f8fafc', borderRadius: 1 }}
-                    />
-                    <Typography color="textSecondary">-</Typography>
-                    <TextField
-                        size="small"
-                        placeholder="До"
-                        type="number"
-                        value={priceMax}
-                        onChange={(e) => setPriceMax(e.target.value)}
-                        sx={{ bgcolor: '#f8fafc', borderRadius: 1 }}
-                    />
-                </Box>
-            </Box>
-
-            <Divider />
-
-            <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', mb: 2, letterSpacing: 1 }}>
-                    Стан
-                </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                    {conditions.map(cond => (
-                        <Chip
-                            key={cond}
-                            label={cond}
-                            onClick={() => setCondition(cond)}
-                            color={condition === cond ? "primary" : "default"}
-                            variant={condition === cond ? "filled" : "outlined"}
-                            sx={{ fontWeight: 600, borderRadius: '8px' }}
-                        />
-                    ))}
-                </Stack>
-            </Box>
-
-            <Button variant="outlined" fullWidth onClick={resetFilters} sx={{ mt: 2, textTransform: 'none', fontWeight: 600, borderRadius: 2 }}>
-                Скинути всі фільтри
-            </Button>
-        </Box>
-    );
-
-    return (
-        <Box className="page-container" sx={{ bgcolor: '#f4f5f8', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <Navbar />
-
-            <HeroSection searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-
-            {/* Головний контейнер (максимальна ширина з розумними відступами) */}
-            <Container maxWidth="xl" sx={{ flexGrow: 1, mt: { xs: 3, md: 5 }, pb: 8, px: { xs: 2, sm: 3, md: 4, lg: 6 } }}>
-
-                {/* Макро-лейаут на Flexbox (уникаємо помилок Grid) */}
-                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 4, alignItems: 'flex-start' }}>
-
-                    {/* ЛІВА КОЛОНКА (Сайдбар для ПК) */}
-                    {!isMobile && (
-                        <Box sx={{
-                            width: '280px',
-                            flexShrink: 0,
-                            position: 'sticky',
-                            top: '24px',
-                            bgcolor: '#fff',
-                            p: 3,
-                            borderRadius: 4,
-                            boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                            border: '1px solid #e2e8f0'
-                        }}>
-                            <FilterContent />
-                        </Box>
-                    )}
-
-                    {/* ПРАВА КОЛОНКА (Контент) */}
-                    <Box sx={{ flexGrow: 1, width: '100%' }}>
-
-                        {/* Верхня панель управління */}
-                        <Box sx={{
-                            display: 'flex',
-                            flexDirection: { xs: 'column', sm: 'row' },
-                            justifyContent: 'space-between',
-                            alignItems: { xs: 'stretch', sm: 'center' },
-                            gap: 2,
-                            mb: 4,
-                            bgcolor: '#fff',
-                            p: { xs: 2, sm: 2.5 },
-                            borderRadius: 4,
-                            boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
-                            border: '1px solid #e2e8f0'
-                        }}>
-                            <Box>
-                                <Typography variant="h5" sx={{ fontWeight: 800, color: '#0f172a' }}>
-                                    {searchQuery ? `Результати для "${searchQuery}"` : selectedCategory}
-                                </Typography>
-                                <Typography variant="body2" sx={{ color: '#64748b', mt: 0.5, fontWeight: 500 }}>
-                                    Знайдено оголошень: <Box component="span" sx={{ color: '#2563eb', fontWeight: 700 }}>{filteredAds.length}</Box>
-                                </Typography>
-                            </Box>
-
-                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-                                {/* Кнопка фільтрів для мобільних */}
-                                {isMobile && (
-                                    <Button
-                                        variant="outlined"
-                                        startIcon={<TuneIcon />}
-                                        onClick={() => setMobileFiltersOpen(true)}
-                                        sx={{ textTransform: 'none', borderRadius: 2, borderColor: '#cbd5e1', color: '#475569', fontWeight: 600, flexGrow: 1 }}
-                                    >
-                                        Фільтри
-                                    </Button>
-                                )}
-
-                                {/* Сортування */}
-                                <FormControl size="small" sx={{ minWidth: 180, flexGrow: isMobile ? 1 : 0 }}>
-                                    <Select
-                                        value={sortBy}
-                                        onChange={(e) => setSortBy(e.target.value)}
-                                        displayEmpty
-                                        sx={{ borderRadius: 2, bgcolor: '#f8fafc', '& fieldset': { borderColor: '#e2e8f0' }, fontWeight: 600, color: '#334155' }}
-                                        startAdornment={<InputAdornment position="start"><SortIcon fontSize="small"/></InputAdornment>}
-                                    >
-                                        <MenuItem value="newest">Найновіші</MenuItem>
-                                        <MenuItem value="price_asc">Від дешевих</MenuItem>
-                                        <MenuItem value="price_desc">Від дорогих</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Box>
-                        </Box>
-
-                        {/* Сітка оголошень (CSS Grid - завжди ідеально адаптивна) */}
-                        {loading ? (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 15 }}>
-                                <CircularProgress thickness={4} size={50} sx={{ color: '#2563eb' }} />
-                            </Box>
-                        ) : (
-                            <Fade in timeout={500}>
-                                <Box sx={{ width: '100%' }}>
-                                    {filteredAds.length > 0 ? (
-                                        <Box sx={{
-                                            display: 'grid',
-                                            // Магія адаптивності: картки самі підлаштовуються від 260px до 1fr
-                                            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                                            gap: 3
-                                        }}>
-                                            {filteredAds.map((ad) => (
-                                                <AdCard key={ad.id} ad={ad} />
-                                            ))}
-                                        </Box>
-                                    ) : (
-                                        <Box sx={{
-                                            textAlign: 'center', py: 12, bgcolor: '#fff', borderRadius: 4, border: '1px dashed #cbd5e1'
-                                        }}>
-                                            <Typography variant="h6" sx={{ fontWeight: 700, color: '#64748b', mb: 2 }}>
-                                                Оголошень не знайдено 😕
-                                            </Typography>
-                                            <Button variant="contained" disableElevation onClick={resetFilters} sx={{ textTransform: 'none', borderRadius: 2, bgcolor: '#2563eb', fontWeight: 600 }}>
-                                                Скинути фільтри
-                                            </Button>
-                                        </Box>
-                                    )}
-                                </Box>
-                            </Fade>
-                        )}
-                    </Box>
-
-                </Box>
-            </Container>
-
-            {/* Мобільне меню фільтрів (Drawer) */}
-            <Drawer
-                anchor="left"
-                open={mobileFiltersOpen}
-                onClose={() => setMobileFiltersOpen(false)}
-                PaperProps={{ sx: { width: '100%', maxWidth: '320px', p: 3, bgcolor: '#fff' } }}
-            >
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: '#0f172a' }}>Фільтри</Typography>
-                    <IconButton onClick={() => setMobileFiltersOpen(false)} sx={{ bgcolor: '#f1f5f9' }}>
-                        <CloseIcon />
-                    </IconButton>
-                </Box>
-                <FilterContent />
-            </Drawer>
-        </Box>
-    );
+const fadeInUp: Variants = {
+    initial: { opacity: 0, y: 50 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.6, 0.05, -0.01, 0.9] } },
 };
 
-export default Home;
+const staggerContainer: Variants = {
+    animate: { transition: { staggerChildren: 0.15 } },
+};
+
+const features = [
+    { icon: <TrendingUpIcon />, title: "Premium Буст", desc: "Підніміть оголошення в топ та отримайте в 15 разів більше переглядів за добу.", color: "#6366f1" },
+    { icon: <VerifiedUserIcon />, title: "Безпечні угоди", desc: "Кожен акаунт проходить верифікацію через Email. Купуйте впевнено.", color: "#10b981" },
+    { icon: <RocketLaunchIcon />, title: "Миттєва публікація", desc: "Ваш товар з'являється в мережі за лічені секунди завдяки Cloudinary.", color: "#f59e0b" },
+    { icon: <SearchIcon />, title: "Розумний пошук", desc: "Фільтруйте за ціною, категорією та станом, щоб знайти саме те.", color: "#ec4899" }
+];
+
+const premiumFeatures = [
+    { icon: <TrendingUpIcon fontSize="large" />, title: "Топ-оголошення", desc: "Ваші лоти завжди вгорі пошуку для миттєвих продажів." },
+    { icon: <UnlimitedIcon fontSize="large" />, title: "Необмежений ліміт", desc: "Публікуйте стільки товарів, скільки вам потрібно." },
+    { icon: <QueryStatsIcon fontSize="large" />, title: "Глибока аналітика", desc: "Відстежуйте перегляди, кліки та конверсію за 24 години." },
+    { icon: <SupportAgentIcon fontSize="large" />, title: "Особистий менеджер", desc: "Допомога в налаштуванні реклами та вирішенні будь-яких питань." }
+];
+
+export default function Home() {
+    const isMobile = useMediaQuery('(max-width:900px)');
+
+    return (
+        <Box sx={{ bgcolor: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+            <Navbar />
+
+            <Box sx={{
+                pt: { xs: 12, md: 22 },
+                pb: { xs: 10, md: 16 },
+                background: "radial-gradient(circle at 50% -20%, #eff6ff 0%, #ffffff 70%)",
+                overflow: "hidden"
+            }}>
+                <Container maxWidth="lg">
+                    <motion.div initial="initial" animate="animate" variants={staggerContainer}>
+                        <motion.div variants={fadeInUp}>
+                            <Typography
+                                variant="h1"
+                                sx={{
+                                    fontSize: { xs: '2.8rem', md: '5.5rem' },
+                                    fontWeight: 900,
+                                    textAlign: 'center',
+                                    lineHeight: { xs: 1.2, md: 1.1 },
+                                    mb: 3,
+                                    letterSpacing: '-0.04em',
+                                    color: '#0f172a'
+                                }}
+                            >
+                                Твій бізнес заслуговує <br />
+                                <span style={{
+                                    background: "linear-gradient(90deg, #6366f1, #a855f7)",
+                                    WebkitBackgroundClip: "text",
+                                    WebkitTextFillColor: "transparent"
+                                }}>на краще охоплення</span>
+                            </Typography>
+                        </motion.div>
+
+                        <motion.div variants={fadeInUp}>
+                            <Typography
+                                sx={{
+                                    fontSize: { xs: '1.1rem', md: '1.5rem' },
+                                    color: '#64748b',
+                                    textAlign: 'center',
+                                    maxWidth: '750px',
+                                    mx: 'auto',
+                                    mb: 8,
+                                    lineHeight: 1.6
+                                }}
+                            >
+                                Online Ads — це не просто дошка оголошень. Це потужна екосистема для швидких продажів та безпечних покупок. Продавай швидше, купуй розумніше.
+                            </Typography>
+                        </motion.div>
+
+                        <motion.div variants={fadeInUp}>
+                            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" alignItems="center">
+                                <Button
+                                    component={Link}
+                                    to="/marketplace"
+                                    variant="contained"
+                                    size="large"
+                                    endIcon={<EastIcon />}
+                                    sx={{
+                                        px: 6, py: 2.2, borderRadius: '18px', fontSize: '1.1rem', fontWeight: 800,
+                                        bgcolor: '#0f172a', '&:hover': { bgcolor: '#1e293b' }, textTransform: 'none',
+                                        width: isMobile ? '100%' : 'auto'
+                                    }}
+                                >
+                                    Відкрити Маркетплейс
+                                </Button>
+
+                            </Stack>
+                        </motion.div>
+                    </motion.div>
+                </Container>
+            </Box>
+
+            {/* --- ПЕРЕВАГИ --- */}
+            <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 } }}>
+                <motion.div initial="initial" whileInView="animate" viewport={{ once: true, amount: 0.2 }} variants={staggerContainer}>
+                    <Box sx={{
+                        display: 'grid',
+                        gap: 4,
+                        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' }
+                    }}>
+                        {features.map((feature, index) => (
+                            <motion.div variants={fadeInUp} whileHover={{ scale: 1.03, y: -5 }} key={index}>
+                                <Paper elevation={0} sx={{
+                                    p: 4, borderRadius: '32px', height: '100%',
+                                    border: '1px solid #f1f5f9', bgcolor: '#f8fafc',
+                                }}>
+                                    <Box sx={{
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        width: 60, height: 60, borderRadius: '20px',
+                                        bgcolor: '#fff', color: feature.color, mb: 3, boxShadow: '0 10px 20px rgba(0,0,0,0.04)'
+                                    }}>
+                                        {feature.icon}
+                                    </Box>
+                                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 1.5, color: '#0f172a' }}>{feature.title}</Typography>
+                                    <Typography sx={{ color: '#64748b', lineHeight: 1.6, fontSize: '0.95rem' }}>{feature.desc}</Typography>
+                                </Paper>
+                            </motion.div>
+                        ))}
+                    </Box>
+                </motion.div>
+            </Container>
+
+            {/* --- ПРЕМІУМ РОЗДІЛ --- */}
+            <Box sx={{ py: { xs: 10, md: 16 } }}>
+                <Container maxWidth="lg">
+                    <motion.div initial="initial" whileInView="animate" viewport={{ once: true, amount: 0.2 }} variants={staggerContainer}>
+                        <motion.div variants={fadeInUp}>
+                            <Paper sx={{
+                                p: { xs: 5, md: 8 },
+                                borderRadius: '40px',
+                                bgcolor: '#0f172a',
+                                color: '#fff',
+                                position: 'relative',
+                                overflow: 'hidden',
+                                boxShadow: '0 40px 80px -20px rgba(15, 23, 42, 0.4)'
+                            }}>
+                                <Box sx={{
+                                    position: 'absolute', top: '-50%', left: '-20%', width: '100%', height: '100%',
+                                    background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(15,23,42,0) 70%)',
+                                    zIndex: 0
+                                }} />
+
+                                <Chip
+                                    icon={<HourglassEmptyIcon style={{ color: '#fff' }} />}
+                                    label="У розробці"
+                                    sx={{
+                                        position: 'absolute', top: { xs: 20, md: 32 }, right: { xs: 20, md: 32 },
+                                        bgcolor: '#a855f7', color: '#fff', fontWeight: 800, px: 1,
+                                        borderRadius: '12px', zIndex: 2
+                                    }}
+                                />
+
+                                <Box sx={{ position: 'relative', zIndex: 1, mb: 8 }}>
+                                    <Typography variant="h2" sx={{ fontWeight: 900, mb: 2, fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
+                                        Скоро: <span style={{ color: '#818cf8' }}>Premium</span>
+                                    </Typography>
+                                    <Typography sx={{ color: '#94a3b8', fontSize: { xs: '1.1rem', md: '1.3rem' }, maxWidth: '600px', lineHeight: 1.6 }}>
+                                        Ми розробляємо інструменти професійного рівня для масштабування ваших продажів.
+                                        Більше охоплення, жодних лімітів та детальна аналітика.
+                                    </Typography>
+                                </Box>
+
+                                <Box sx={{
+                                    display: 'grid',
+                                    gap: { xs: 4, md: 6 },
+                                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+                                    position: 'relative', zIndex: 1
+                                }}>
+                                    {premiumFeatures.map((feat, index) => (
+                                        <Box key={index}>
+                                            <Box sx={{ color: '#818cf8', mb: 2 }}>
+                                                {feat.icon}
+                                            </Box>
+                                            <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: '#f8fafc' }}>
+                                                {feat.title}
+                                            </Typography>
+                                            <Typography variant="body2" sx={{ color: '#94a3b8', lineHeight: 1.6 }}>
+                                                {feat.desc}
+                                            </Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            </Paper>
+                        </motion.div>
+                    </motion.div>
+                </Container>
+            </Box>
+
+            <Container maxWidth="lg" sx={{ py: { xs: 8, md: 12 }, textAlign: 'center' }}>
+                <motion.div initial="initial" whileInView="animate" viewport={{ once: true }} variants={staggerContainer}>
+                    <motion.div variants={fadeInUp}>
+                        <Typography variant="h2" sx={{ fontWeight: 900, mb: 3, letterSpacing: '-1px', color: '#0f172a' }}>
+                            Готовий почати?
+                        </Typography>
+                        <Typography sx={{ color: '#64748b', mb: 6, fontSize: '1.2rem', maxWidth: '500px', mx: 'auto' }}>
+                            Створи свій перший лот за 2 хвилини абсолютно безкоштовно.
+                        </Typography>
+                        <Button component={Link} to="/register" variant="contained" size="large" sx={{ bgcolor: '#0f172a', px: 6, py: 2, borderRadius: 3, textTransform: 'none', fontWeight: 700 }}>
+                            Зареєструватися безкоштовно
+                        </Button>
+                    </motion.div>
+                </motion.div>
+            </Container>
+
+            <Footer />
+        </Box>
+    );
+}

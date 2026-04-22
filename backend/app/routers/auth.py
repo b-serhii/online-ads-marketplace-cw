@@ -1,6 +1,4 @@
-import os
-import uuid
-import shutil
+import cloudinary.uploader
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 
@@ -115,18 +113,8 @@ async def update_profile(
         if not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="Файл має бути зображенням")
 
-        UPLOAD_DIR = "uploads/avatars"
-        if not os.path.exists(UPLOAD_DIR):
-            os.makedirs(UPLOAD_DIR)
-
-        file_extension = file.filename.split(".")[-1]
-        new_filename = f"{uuid.uuid4()}.{file_extension}"
-        full_path = os.path.join(UPLOAD_DIR, new_filename)
-
-        with open(full_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        update_data["avatar"] = f"/uploads/avatars/{new_filename}"
+        result = cloudinary.uploader.upload(file.file, folder="avatars")
+        update_data["avatar"] = result.get("secure_url")
 
     await db.execute(
         update(User)

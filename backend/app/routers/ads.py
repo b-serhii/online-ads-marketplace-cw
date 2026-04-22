@@ -1,18 +1,20 @@
-import os
-import uuid
-import shutil
+import cloudinary.uploader
 from typing import List, Optional
+
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
 from datetime import datetime
+
 from app.models import Ad, User
 from app.core.deps import get_current_user
-
 from ..db import get_db
 
 router = APIRouter(prefix="/ads", tags=["ads"])
+
+
+# ------------------- RESPONSE -------------------
 
 class AdResponse(BaseModel):
     id: int
@@ -20,16 +22,32 @@ class AdResponse(BaseModel):
     description: str
     price: float
     category: str
+
     image_url: Optional[str]
+    images_urls: List[str] = []
+
     user_id: int
     created_at: datetime
 
-    author_name: Optional[str] = None
-    author_avatar: Optional[str] = None
-    author_phone: Optional[str] = None
+    author_name: Optional[str]
+    author_avatar: Optional[str]
+    author_phone: Optional[str]
 
     class Config:
         from_attributes = True
+
+
+def build_ad_response(ad: Ad, user: User):
+    return {
+        **ad.__dict__,
+        "images_urls": ad.images_urls or [],
+        "author_name": user.name,
+        "author_avatar": user.avatar,
+        "author_phone": user.phone
+    }
+
+
+# ------------------- GET ONE -------------------
 
 @router.get("/{ad_id}", response_model=AdResponse)
 async def get_ad(ad_id: int, db: AsyncSession = Depends(get_db)):
@@ -41,77 +59,109 @@ async def get_ad(ad_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Оголошення не знайдено")
 
     ad, user = row
+    return build_ad_response(ad, user)
 
-    return {
-        "id": ad.id,
-        "title": ad.title,
-        "description": ad.description,
-        "price": ad.price,
-        "category": ad.category,
-        "image_url": ad.image_url,
-        "user_id": ad.user_id,
-        "created_at": ad.created_at,
-        "author_name": user.name,
-        "author_avatar": getattr(user, 'avatar', None),
-        "author_phone": getattr(user, 'phone', None)
-    }
 
+# ------------------- MY ADS -------------------
 
 @router.get("/my/all", response_model=List[AdResponse])
 async def get_my_ads(
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(get_current_user)
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    query = select(Ad).where(Ad.user_id == current_user.id).order_by(Ad.created_at.desc())
+    query = select(Ad).where(Ad.user_id == current_user.id)
     result = await db.execute(query)
-    return result.scalars().all()
+    ads = result.scalars().all()
 
+    return [
+        {
+            **ad.__dict__,
+            "images_urls": ad.images_urls or [],
+            "author_name": current_user.name,
+            "author_avatar": current_user.avatar,
+            "author_phone": current_user.phone
+        }
+        for ad in ads
+    ]
+
+
+# ------------------- CREATE -------------------
 
 @router.post("/", response_model=AdResponse)
 async def create_ad(
-        title: str = Form(...),
-        description: str = Form(...),
-        price: float = Form(...),
-        category: str = Form(...),
-        file: Optional[UploadFile] = File(None),
-        db: AsyncSession = Depends(get_db),
-        current_user: User = Depends(get_current_user)
+    title: str = Form(...),
+    description: str = Form(...),
+    price: float = Form(...),
+    category: str = Form(...),
+    images: List[UploadFile] = File(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
-    image_path = None
+    uploaded_urls = []
 
-    if file:
-        if not file.content_type.startswith("image/"):
-            raise HTTPException(status_code=400, detail="Файл має бути зображенням")
+    if images:
+        for img in images:
+            if not img.content_type.startswith("image/"):
+                continue
 
-        UPLOAD_DIR = "uploads/ads"
-        if not os.path.exists(UPLOAD_DIR):
-            os.makedirs(UPLOAD_DIR)
-
-        file_extension = file.filename.split(".")[-1]
-        new_filename = f"{uuid.uuid4()}.{file_extension}"
-        full_path = os.path.join(UPLOAD_DIR, new_filename)
-
-        with open(full_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        image_path = f"/uploads/ads/{new_filename}"
+            res = cloudinary.uploader.upload(img.file, folder="ads")
+            uploaded_urls.append(res.get("secure_url"))
 
     new_ad = Ad(
         title=title,
         description=description,
         price=price,
         category=category,
-        image_url=image_path,
+        image_url=uploaded_urls[0] if uploaded_urls else None,
+        images_urls=uploaded_urls,
         user_id=current_user.id
     )
 
     db.add(new_ad)
     await db.commit()
     await db.refresh(new_ad)
-    return new_ad
+
+    return build_ad_response(new_ad, current_user)
 
 
-@router.get("/", response_model=List[AdResponse])
-async def get_ads(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(Ad).where(Ad.is_active == True).order_by(Ad.created_at.desc()))
-    return result.scalars().all()
+# ------------------- UPDATE -------------------
+
+@router.put("/{ad_id}", response_model=AdResponse)
+async def update_ad(
+    ad_id: int,
+    title: str = Form(...),
+    description: str = Form(...),
+    price: float = Form(...),
+    category: str = Form(...),
+    images: List[UploadFile] = File(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    ad = await db.get(Ad, ad_id)
+
+    if not ad:
+        raise HTTPException(status_code=404, detail="Не знайдено")
+
+    if ad.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Немає доступу")
+
+    if images:
+        uploaded_urls = []
+        for img in images:
+            if img.content_type.startswith("image/"):
+                res = cloudinary.uploader.upload(img.file, folder="ads")
+                uploaded_urls.append(res.get("secure_url"))
+
+        if uploaded_urls:
+            ad.images_urls = uploaded_urls
+            ad.image_url = uploaded_urls[0]
+
+    ad.title = title
+    ad.description = description
+    ad.price = price
+    ad.category = category
+
+    await db.commit()
+    await db.refresh(ad)
+
+    return build_ad_response(ad, current_user)

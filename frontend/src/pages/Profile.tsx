@@ -42,7 +42,9 @@ export default function Profile() {
                 setUser(data);
                 setName(data.name || '');
                 setPhone(data.phone || '');
-                if (data.avatar) setAvatarUrl(`${BACKEND_URL}${data.avatar}`);
+                if (data.avatar) {
+                    setAvatarUrl(data.avatar.startsWith('http') ? data.avatar : `${BACKEND_URL}${data.avatar}`);
+                }
             } catch {
                 setToast({ open: true, message: 'Помилка завантаження', severity: 'error' });
             } finally {

@@ -1,13 +1,23 @@
 import os
+import cloudinary
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routers import ads
 
 from app.models import Base
 from app.db import engine
 from app.core.config import settings
-from app.routers import auth, admin, users
+from app.routers import auth, admin, users, ads
+
+load_dotenv()
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 app = FastAPI(title="Online Ads Marketplace API")
 
@@ -20,6 +30,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 @app.on_event("startup")
 async def startup():
     async with engine.begin() as conn:
@@ -30,12 +41,6 @@ if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
 app.mount("/static", StaticFiles(directory=UPLOAD_DIR), name="static")
-
-if not os.path.exists("uploads"):
-    os.makedirs("uploads")
-
-app.mount("/static", StaticFiles(directory="uploads"), name="static")
-
 
 app.include_router(auth.router)
 app.include_router(admin.router)
